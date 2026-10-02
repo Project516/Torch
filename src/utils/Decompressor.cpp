@@ -175,6 +175,10 @@ uint32_t Decompressor::TranslateAddr(uint32_t addr, bool baseAddress){
         if(addr >= vram.addr){
             return vram.offset + (addr - vram.addr);
         }
+
+        // Yamls list offsets relative to the section base, so they sit below the
+        // segment base address and can only be resolved against vram.offset.
+        return vram.offset + addr;
     }
 
     return addr;
