@@ -854,7 +854,12 @@ std::optional<std::shared_ptr<IParsedData>> MK64::PackedDListFactory::parse(std:
 
 done:
     if (gfx.empty()) {
-        return std::nullopt;
+        // A packed list can hold nothing at all, and it still needs its end marker.
+        if (decoded.empty() || decoded[0] == PG_EOF) {
+            emit(_SHIFTL(G_ENDDL, 24, 8), 0);
+        } else {
+            return std::nullopt;
+        }
     }
 
     // Print gfx command output for debugging/export visualization
