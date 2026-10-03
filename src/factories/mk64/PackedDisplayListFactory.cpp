@@ -585,12 +585,9 @@ std::optional<std::shared_ptr<IParsedData>> MK64::PackedDListFactory::parse(std:
             vtxOff *= 0x10; // bytes
 
             uint8_t n = op - PG_VTX_BASE; // map 0x33..→1.. etc.
-            // In runtime, w0 uses (n<<10)+((n*0x10)-1); start index implied 0
-            // uint32_t w0 = (_SHIFTL(G_VTX, 24, 8)
-            //               | ((n << 10) + ((n * 0x10) - 1)));
-            // uint32_t w1 = vtxOff;
-            vtxOff |= 0x04000000;
-            N64Gfx macro = gsSPVertex(vtxOff, n, 0);
+            // The exporter turns a plain G_VTX into a reference to the vertex asset
+            // that holds this segment address, so keep it as one.
+            N64Gfx macro = gsSPVertex(0x04000000u | vtxOff, n, 0);
             emit(macro.words.w0, macro.words.w1);
             continue;
         }
@@ -609,14 +606,8 @@ std::optional<std::shared_ptr<IParsedData>> MK64::PackedDListFactory::parse(std:
                 uint8_t b1 = decoded[i++];
                 uint8_t n = (uint8_t)(b1 & 0x3F);
 
-                // G_VTX encoding matches DisplayListFactory exporter expectations
-                uint32_t w0 = (_SHIFTL(G_VTX, 24, 8)
-                            | _SHIFTL((n * 2), 16, 8)
-                            | ((start << 10) + ((0x10 * start) - 1)));
-                // Use segmented address style: segment 0x04 is vertex pool in runtime; here we keep raw offset so exporter can attempt resolution
-                uint32_t w1 = vtxOff; // exporter will patch/resolve if possible
-                
-                emit(w0, w1);
+                N64Gfx macro = gsSPVertex(0x04000000u | vtxOff, n, start);
+                emit(macro.words.w0, macro.words.w1);
             } break;
             case PG_TILECFG_A:
             case PG_TILECFG_B:
