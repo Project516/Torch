@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <atomic>
 #include <optional>
 #include <filesystem>
 #include <vector>
@@ -143,6 +144,8 @@ public:
     bool NodeHasChanges(const std::string& string);
 
     void Process();
+    // Counts each asset yaml as Process() reaches it, for a caller on another thread.
+    void SetProgressCounter(std::atomic<size_t>* counter) { this->gProgress = counter; }
 
     bool IsOTRMode() const { return (this->gConfig.otrMode != ArchiveType::None); }
     bool IsDebug() const { return this->gConfig.debug; }
@@ -224,6 +227,7 @@ private:
     std::vector<std::string> gCurrentExternalFiles;
     std::unordered_map<int, std::string> gManualSegments;
     std::unordered_set<std::string> gProcessedFiles;
+    std::atomic<size_t>* gProgress = nullptr;
 
     std::unordered_map<std::string, std::vector<char>> gCompanionFiles;
     std::unordered_map<std::string, std::vector<ParseResultData>> gParseResults;

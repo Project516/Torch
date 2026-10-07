@@ -1310,6 +1310,10 @@ void Companion::Process() {
             ProcessFile(root);
             this->gProcessedFiles.insert(this->gCurrentFile);
         }
+
+        if (this->gProgress != nullptr) {
+            (*this->gProgress)++;
+        }
     }
 
     if(wrapper != nullptr) {
