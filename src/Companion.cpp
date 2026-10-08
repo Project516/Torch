@@ -1287,6 +1287,7 @@ void Companion::Process() {
         vWriter.Write((uint32_t) 0);
     }
 
+    std::vector<std::filesystem::directory_entry> assetYamls;
     for (const auto & entry : Torch::getRecursiveEntries(this->gAssetPath)){
         if(entry.is_directory())  {
             continue;
@@ -1302,6 +1303,22 @@ void Companion::Process() {
             continue;
         }
 
+        assetYamls.push_back(entry);
+    }
+
+    // Only files named in some external_files are read after processing, so the rest are freed.
+    std::unordered_set<std::string> externalFiles;
+    for (const auto & entry : assetYamls) {
+        const auto config = YAML::LoadFile(entry.path().generic_string())[":config"];
+        if (config && config["external_files"] && config["external_files"].IsSequence()) {
+            for (const auto& file : config["external_files"]) {
+                externalFiles.insert((this->gSourceDirectory / file.as<std::string>()).string());
+            }
+        }
+    }
+
+    for (const auto & entry : assetYamls){
+        const auto yamlPath = entry.path().generic_string();
         YAML::Node root = YAML::LoadFile(yamlPath);
         this->gCurrentDirectory = relative(entry.path(), this->gAssetPath).replace_extension("");
         this->gCurrentFile = yamlPath;
@@ -1309,6 +1326,11 @@ void Companion::Process() {
         if (!this->gProcessedFiles.contains(this->gCurrentFile)) {
             ProcessFile(root);
             this->gProcessedFiles.insert(this->gCurrentFile);
+        }
+
+        if (!externalFiles.contains(this->gCurrentFile)) {
+            this->gAddrMap.erase(this->gCurrentFile);
+            this->gParseResults.erase(this->gCurrentFile);
         }
 
         if (this->gProgress != nullptr) {
